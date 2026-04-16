@@ -1,0 +1,10 @@
+---
+- name: Lägg till rutt för DMZ-maskiner
+  command: ip route add 192.168.10.0/24 via 192.168.20.1
+  when: "'dmz' in group_names"
+  ignore_errors: yes
+
+- name: Lägg till rutt för Backend-maskiner
+  command: ip route add 192.168.10.0/24 via 192.168.30.1
+  when: "'backend' in group_names"
+  ignore_errors: yes
