@@ -47,12 +47,12 @@ Vagrant.configure("2") do |config|
 
       # Lägg till rutt baserat på vilket nätverk noden tillhör
       if machine[:name] == "vault" || machine[:name] == "database"
-        node.vm.provision "shell", inline: "ip route add 192.168.10.0/24 via 192.168.30.1", run: "always"
+        node.vm.provision "shell", inline: "ip route replace #{FRONTEND_SUB}0/24 via #{BACKEND_SUB}1", run: "always"
       elsif machine[:name] == "webserver" || machine[:name] == "keycloak"
-        node.vm.provision "shell", inline: "ip route add 192.168.10.0/24 via 192.168.20.1", run: "always"
+        node.vm.provision "shell", inline: "ip route replace #{FRONTEND_SUB}0/24 via #{SERVICE_SUB}1", run: "always"
       elsif machine[:name] == "ansible-control"
-        node.vm.provision "shell", inline: "ip route add 192.168.20.0/24 via 192.168.10.1", run: "always"
-        node.vm.provision "shell", inline: "ip route add 192.168.30.0/24 via 192.168.10.1", run: "always" 
+        node.vm.provision "shell", inline: "ip route replace #{SERVICE_SUB}0/24 via #{FRONTEND_SUB}1", run: "always"
+        node.vm.provision "shell", inline: "ip route replace #{BACKEND_SUB}0/24 via #{FRONTEND_SUB}1", run: "always" 
       end
 
       # Provisionering: Ansible-control förbereder nyckeln
