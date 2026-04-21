@@ -1,5 +1,5 @@
 # Vagrant-filer (innehåller lokala tillstånd och privata nycklar)
-.vagrant
+.vagrant/
 
 # SSH-nycklar och delade hemligheter
 shared_keys/
