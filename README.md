@@ -6,3 +6,32 @@ Förklara strukturen kring mappar, roller och tasks för ansible.
 Förklara de olika Vm:arnas roller
 Gör ett testscript
 Kontrollera kopplingar och trafik för VM med script.
+
+
+
+Keycloak-kontrakt
+URL
+realm-namn
+client_id
+redirect URI
+testuser + lösenord
+
+Vault-kontrakt
+URL
+auth-metod
+secret path
+vilka nycklar som finns där, till exempel:
+    db_user
+    db_password
+
+Databaskontrakt
+host
+port
+databasnamn
+tabellnamn
+
+Webapp-kontrakt
+    vilken callback-path som används
+    vilken Vault-path appen läser från
+    vilken SQL-fråga som ska köras
+
