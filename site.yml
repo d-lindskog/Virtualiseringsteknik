@@ -1,5 +1,0 @@
-- name: Konfigurera nätverksvägar via roller
-  hosts: dmz, backend
-  become: yes
-  roles:
-    - network_config
