@@ -12,3 +12,5 @@ ansible/vars/secrets.yml
 # Python cache (om Flask-kod finns i repot)
 __pycache__/
 *.pyc
+.vagrant/
+
