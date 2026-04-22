@@ -1,5 +1,6 @@
 # Vagrant internfiler
 vagrant/.vagrant/
+.vagrant/
 
 # Secrets — aldrig i Git
 vagrant/secrets.yml
@@ -12,5 +13,5 @@ ansible/vars/secrets.yml
 # Python cache (om Flask-kod finns i repot)
 __pycache__/
 *.pyc
-.vagrant/
+
 
