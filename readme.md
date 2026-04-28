@@ -19,6 +19,11 @@ Kontrollera kopplingar och trafik för VM med script.
 - [Miljöer och IP-adresser](#miljöer-och-ip-adresser)
 - [Mappstruktur](#mappstruktur)
 - [Komponenter](#komponenter)
+  - [Vagrantfile](#vagrantfile)
+  - [inventory.ini](#inventoryini)
+  - [site.yml](#siteyml)
+  - [Rollen common](#rollen-common)
+  - [Rollen firewall](#rollen-firewall)
 - [Krav och förutsättningar](#krav-och-förutsättningar)
 - [Kom igång](#kom-igång)
 - [Secrets](#secrets)
@@ -83,6 +88,12 @@ repo/
 ├── .gitignore
 └── README.md
 
+```
+
+
+## Komponenter
+
+
 ### Vagrantfile
 
 `Vagrantfile` är projektets infrastrukturdefinition och ansvarar för att bygga upp hela labbtopologin i VirtualBox. Den definierar sex Ubuntu 22.04-baserade virtuella maskiner med fasta IP-adresser och tydliga roller:
@@ -99,6 +110,8 @@ Topologin är uppdelad i tre separata interna nät: frontend, service/DMZ och ba
 Vagrantfilen har också en viktig bootstrap-funktion. Förutom att skapa maskinerna konfigurerar den initial SSH-åtkomst genom att låta `ansible-control` generera en SSH-nyckel, som sedan delas till övriga noder via en synkad katalog. Detta gör att Ansible senare kan administrera noderna över de interna adresserna.
 
 För att kommunikationen mellan zonerna ska fungera provisioneras även statiska routingregler. `firewall` får tre nätkort och IP forwarding aktiveras permanent, vilket gör att den fungerar som central gateway mellan frontend, DMZ och backend. På så sätt används Vagrantfilen både för att skapa infrastrukturen och för att ge miljön en första fungerande nätverks- och administrationskonfiguration.
+
+--- 
 
 ### inventory.ini
 
@@ -121,6 +134,8 @@ I `all:vars` definieras gemensamma anslutningsinställningar för alla noder, ti
 
 Syftet med inventory-filen är att fungera som kopplingen mellan infrastrukturen som skapas i Vagrant och konfigurationen som hanteras i Ansible.
 
+---
+
 ### site.yml
 
 `site.yml` är projektets centrala playbook och fungerar som startpunkt för Ansible-konfigurationen. Den bestämmer vilka roller som ska köras, på vilka grupper och i vilken ordning.
@@ -140,6 +155,8 @@ Rollen `firewall` konfigurerar brandväggsnoden genom att:
 
 Tanken med `site.yml` är att vara en gemensam körpunkt för hela projektet. När fler delar byggs färdigt kan nya roller läggas till, till exempel för `webserver`, `keycloak`, `vault` och `database`, utan att strukturen behöver göras om.
 
+---
+
 ### Rollen common
 
 Rollen `common` används för att skapa en gemensam bas på alla noder i labbmiljön. Syftet är att göra maskinerna enklare att administrera, felsöka och bygga vidare på med fler roller.
@@ -154,6 +171,8 @@ I den nuvarande versionen installerar rollen grundläggande verktyg som:
 Dessa paket används främst för administration och testning. `curl` är användbart för att testa webbtjänster och API:er, `jq` för att läsa JSON-svar, `git` för versionshantering och `vim` för redigering direkt i terminalen.
 
 Rollen körs på alla noder via `site.yml` och fungerar som projektets gemensamma grundkonfiguration.
+
+---
 
 ### Rollen firewall
 
@@ -178,3 +197,5 @@ I den nuvarande versionen tillåts bland annat:
 - trafik från `webserver` till `database`
 
 Det gör att brandväggen både fungerar som router mellan näten och som säkerhetskontroll för vilka anslutningar som ska tillåtas.
+
+---
