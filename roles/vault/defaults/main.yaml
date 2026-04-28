@@ -1,0 +1,19 @@
+---
+# Styr vilken version av Vault som installeras
+vault_version: "1.15.0"
+
+# Vault-VMens IP från inventory (192.168.30.10 = Backend-nät)
+vault_address: "192.168.30.10"
+
+# 8200 är Vaults standardport för API och UI
+vault_port: 8200
+
+# Var konfigfilen sparas på servern
+vault_config_dir: "/etc/vault.d"
+
+# Var Vault lagrar sin data på disk
+vault_data_dir: "/opt/vault/data"
+
+# Vault ska köras som egen användare, inte root - av säkerhetsskäl
+vault_user: "vault"
+vault_group: "vault"
