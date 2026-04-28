@@ -1,20 +1,39 @@
-Här beskriver vi vår arbets- och tankegång:
-Vi började med att sätta upp en ritning och planerade för hur vårt projekt ska fungera visuelt, för att kunna diskutera kring lösningen och få alla att tänka lika.
-Sedan satte vi upp själva skelettet genom att strukturera vår vagrantfil för att skapa våra VM, samt sätta strukturen för vårt nätverk och den statiska routningen. Ett problem som dök upp var att vi hade börjat projektet utan att ha med en.gitignore-fil vuilket gjorde det svårt att rensa bort sådana filer som Git redan hade indexerat. Samt så var det lite utmanande att förstå att försat routningen måste ske statiskt innan ssh-nycklarna fanns på plats, kolla med Almir om detta stämmer.. 
-Föklara hur vagrantfilrn är uppyggd och trukturerad
-Förklara strukturen kring mappar, roller och tasks för ansible.
-Förklara de olika Vm:arnas roller
-Gör ett testscript
-Kontrollera kopplingar och trafik för VM med script.
-
 # Virtualiseringsteknik – Segmenterad labbmiljö med Vagrant och Ansible
 
-> En segmenterad labbmiljö byggd i VirtualBox med Vagrant och Ansible. Miljön består av en tre-bent brandvägg mellan frontend, DMZ och backend, där Ansible används för att konfigurera noderna och tillämpa grundläggande säkerhetsåtgärder.
+> En segmenterad labbmiljö byggd i VirtualBox med Vagrant och Ansible. Projektet simulerar ett inloggningsflöde där en användare går till en webserver, autentiseras via Keycloak, varefter webservern hämtar databasuppgifter från Vault och ansluter till databasen. Trafiken separeras mellan frontend, DMZ och backend via en central tre-bent brandvägg.
+
+---
+
+## Syfte
+
+Syftet med labben är att simulera ett säkert applikationsflöde i en segmenterad virtualiserad miljö. En användare ska nå en webserver i DMZ, logga in via Keycloak och därefter få åtkomst till data från en backend-databas. Webservern ska inte ha hårdkodade databasuppgifter, utan i stället hämta dessa från Vault. Samtidigt ska brandväggen kontrollera att endast nödvändig trafik tillåts mellan frontend, DMZ och backend.
+
+Projektet är uppbyggt för att visa flera säkerhetsprinciper i samma lösning:
+
+- nätsegmentering
+- central trafikstyrning
+- autentisering via separat identitetstjänst
+- secrets-hantering via Vault
+- åtkomst till backend endast genom kontrollerade flöden
+
+### Övergripande flöde
+
+Projektet är utformat för att simulera följande händelsekedja:
+
+1. Användaren går till webservern i DMZ.
+2. Webservern kräver inloggning och skickar användaren vidare till Keycloak.
+3. Keycloak autentiserar användaren och returnerar användaren till webservern.
+4. Webservern hämtar databasuppgifter från Vault.
+5. Webservern ansluter till databasen i backend.
+6. Webservern visar data för den inloggade användaren.
+
+Detta gör att projektet visar både autentisering, secrets-hantering, databaskoppling och nätsegmentering i samma labbmiljö.
 
 ---
 
 ## Innehållsförteckning
 
+- [Syfte](#syfte)
 - [Arkitektur](#arkitektur)
 - [Miljöer och IP-adresser](#miljöer-och-ip-adresser)
 - [Mappstruktur](#mappstruktur)
