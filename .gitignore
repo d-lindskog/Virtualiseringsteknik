@@ -14,3 +14,7 @@ secrets.yml
 .vscode/
 .DS_Store
 Thumbs.db
+
+#virtualenvirement
+venv/
+
