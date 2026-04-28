@@ -1,0 +1,9 @@
+---
+- name: Reload sysctl
+  command: sysctl --system
+
+- name: Restart nftables
+  systemd:
+    name: nftables
+    state: restarted
+    

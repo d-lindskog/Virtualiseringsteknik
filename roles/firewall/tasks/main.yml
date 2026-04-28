@@ -1,0 +1,29 @@
+---
+- name: Installera nftables
+  apt:
+    name: nftables
+    state: present
+
+- name: Aktivera IP forwarding permanent
+  copy:
+    dest: /etc/sysctl.d/99-forwarding.conf
+    content: "net.ipv4.ip_forward=1\n"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload sysctl
+
+- name: Lägg ut nftables-konfiguration
+  template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart nftables
+
+- name: Se till att nftables är aktiverat och startat
+  systemd:
+    name: nftables
+    enabled: yes
+    state: started

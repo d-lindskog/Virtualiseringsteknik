@@ -1,0 +1,52 @@
+#!/usr/sbin/nft -f
+
+flush ruleset
+
+table inet filter {
+  chain input {
+    type filter hook input priority 0;
+    policy drop;
+
+    iif "lo" accept
+    ct state established,related accept
+
+    # Vagrant management-SSH via NAT-adaptern
+    iifname "enp0s3" tcp dport 22 accept
+
+    # SSH till firewall från ansible-control
+    ip saddr 192.168.10.100 tcp dport 22 accept
+
+    # Ping till firewall
+    ip protocol icmp accept
+  }
+
+  chain forward {
+    type filter hook forward priority 0;
+    policy drop;
+
+    ct state established,related accept
+
+    # SSH från ansible-control till alla noder
+    ip saddr 192.168.10.100 tcp dport 22 accept
+
+    # Frontend -> Webserver
+    ip saddr 192.168.10.0/24 ip daddr 192.168.20.30 tcp dport { 80, 443 } accept
+
+    # Frontend -> Keycloak
+    ip saddr 192.168.10.0/24 ip daddr 192.168.20.10 tcp dport { 80, 443, 8080 } accept
+
+    # Webserver -> Keycloak
+    ip saddr 192.168.20.30 ip daddr 192.168.20.10 tcp dport { 80, 443, 8080 } accept
+
+    # Webserver -> Vault
+    ip saddr 192.168.20.30 ip daddr 192.168.30.10 tcp dport 8200 accept
+
+    # Webserver -> Database
+    ip saddr 192.168.20.30 ip daddr 192.168.30.20 tcp dport 5432 accept
+  }
+
+  chain output {
+    type filter hook output priority 0;
+    policy accept;
+  }
+}
