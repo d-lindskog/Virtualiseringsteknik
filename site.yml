@@ -7,23 +7,3 @@
   become: yes
   roles:
     - firewall
-
-- hosts: keycloak
-  become: yes
-  roles:
-    - keycloak
-
-- hosts: vault
-  become: yes
-  roles:
-    - vault
-
-- hosts: database
-  become: yes
-  roles:
-    - database
-
-- hosts: webserver
-  become: yes
-  roles:
-    - webserver

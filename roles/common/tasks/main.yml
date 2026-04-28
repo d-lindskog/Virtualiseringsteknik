@@ -1,0 +1,14 @@
+---
+- name: Uppdatera paketcache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Installera grundpaket
+  apt:
+    name:
+      - curl
+      - vim
+      - git
+      - jq
+    state: present
