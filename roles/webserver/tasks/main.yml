@@ -1,0 +1,15 @@
+---
+# Installerar Python på webservern
+# Flask behöver Python för att kunna köras
+
+- name: Installera python3
+  apt:
+    name: python3
+    state: present
+    # Installerar Flask för webbapplikationen
+
+- name: Installera python3-flask
+  apt:
+    name: python3-flask
+    state: present
+    
