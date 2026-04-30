@@ -218,3 +218,29 @@ I den nuvarande versionen tillåts bland annat:
 Det gör att brandväggen både fungerar som router mellan näten och som säkerhetskontroll för vilka anslutningar som ska tillåtas.
 
 ---
+
+### Rollen vault
+
+Rollen `vault` används för att installera och konfigurera HashiCorp Vault på backend-noden `vault` (`192.168.30.10`). Vault fungerar som projektets secrets manager och ansvarar för att lagra och lämna ut känsliga uppgifter, till exempel databasuppgifter, på ett säkert och kontrollerat sätt.
+
+Rollen gör följande:
+
+- lägger till HashiCorps GPG-nyckel för att verifiera paketet
+- lägger till HashiCorps officiella apt-repository
+- installerar Vault via apt
+- skapar dedikerade mappar för konfiguration och data
+- lägger ut en Vault-konfigurationsfil via Jinja2-template
+- startar och aktiverar Vault-tjänsten
+
+Vault körs som en egen systemanvändare och inte som root, vilket är ett medvetet säkerhetsbeslut för att begränsa behörigheter på servern.
+
+Konfigurationsfilen genereras från en Jinja2-template (`vault.hcl.j2`) där variabler som IP-adress, port och sökvägar hämtas från `defaults/main.yml`. Detta gör rollen återanvändbar och enkel att anpassa utan att ändra i själva konfigurationsfilen.
+
+I labbmiljön är TLS inaktiverat för enkelhetens skull. I en produktionsmiljö ska TLS alltid vara aktiverat för krypterad kommunikation.
+
+Vault exponerar sitt API och webbgränssnitt på port `8200` och kan nås på 
+`http://192.168.30.10:8200/ui` inifrån labbmiljön.
+
+I labbmiljön används filbaserad storage (`file`) för att lagra data på disk 
+under `/opt/vault/data`. Detta kräver ingen extern databas och passar 
+utmärkt i vår labbmiljö.
