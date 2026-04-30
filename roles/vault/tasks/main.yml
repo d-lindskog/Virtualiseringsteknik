@@ -1,0 +1,61 @@
+---
+# Steg 1 - Lägg till HashiCorps GPG-nyckel
+# Verifierar att paketen verkligen kommer från HashiCorp och inte någon annan
+- name: Lägg till HashiCorp GPG-nyckel
+  apt_key:
+    url: https://apt.releases.hashicorp.com/gpg
+    state: present
+
+# Steg 2 - Lägg till HashiCorps repository
+# Talar om för Ubuntu var den ska leta efter Vault-paketet
+- name: Lägg till HashiCorp repository
+  apt_repository:
+    repo: "deb https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+    state: present
+
+# Steg 3 - Installera Vault
+# Installerar den version som definierats i defaults/main.yml
+- name: Installera Vault
+  apt:
+    name: "vault={{ vault_version }}"
+    state: present
+    update_cache: yes  # Uppdaterar paketlistan efter att nytt repo lagts till
+
+# Steg 4 - Skapa konfigurationsmapp
+# Vault behöver en egen mapp för sin konfigurationsfil
+- name: Skapa Vault konfigurationsmapp
+  file:
+    path: "{{ vault_config_dir }}"  # Hämtas från defaults/main.yml
+    state: directory
+    owner: "{{ vault_user }}"       # Vault ska äga sin egen mapp
+    group: "{{ vault_group }}"
+    mode: '0755'
+
+# Steg 5 - Skapa datamapp
+# Här lagrar Vault all sin data, t.ex. hemligheter och nycklar
+- name: Skapa Vault datamapp
+  file:
+    path: "{{ vault_data_dir }}"    # Hämtas från defaults/main.yml
+    state: directory
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    mode: '0750'                    # Mer restriktiv än konfigmappen - känslig data
+
+# Steg 6 - Kopiera konfigurationsfil
+# Använder template med variabler från defaults/main.yml
+- name: Kopiera Vault konfigurationsfil
+  template:
+    src: vault.hcl.j2              # Hämtas från templates/
+    dest: "{{ vault_config_dir }}/vault.hcl"
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    mode: '0640'                    # Endast Vault-användaren kan läsa konfigfilen
+  notify: Starta om Vault          # Startar om Vault om konfigfilen ändrats
+
+# Steg 7 - Starta och aktivera Vault
+# Säkerställer att Vault körs och startar automatiskt vid omstart
+- name: Starta och aktivera Vault
+  systemd:
+    name: vault
+    state: started
+    enabled: yes                    # Vault startar automatiskt vid omstart av servern
