@@ -12,4 +12,22 @@
   apt:
     name: python3-flask
     state: present
+    # Installerar nginx
+
+- name: Installera nginx
+  apt:
+    name: nginx
+    state: present
+   # Installerar pip för Python-paket
+
+- name: Installera python3-pip
+  apt:
+    name: python3-pip
+    state: present
+     # Skapar katalog för webbapplikationen
+
+- name: Skapa katalog för Flask-applikation
+  file:
+    path: /opt/webapp
+    state: directory
     
