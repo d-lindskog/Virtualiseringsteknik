@@ -22,6 +22,13 @@
     group: vagrant
     mode: "0755"
 
+# Kopierar Flask-applikationen från Ansible till webservern
+
+- name: Kopiera Flask-app till servern
+  copy:
+    src: app.py
+    dest: /opt/webapp/app.py
+
 # Startar nginx så webservern är igång och aktiveras vid omstart.
 
 - name: Starta och aktivera nginx
@@ -29,4 +36,3 @@
     name: nginx
     state: started
     enabled: true
-    
