@@ -1,36 +1,30 @@
 ---
-# Installerar Python på webservern
-# Flask behöver Python för att kunna köras
+# Grundinstallation för webservern i DMZ.
+# Installerar paket som behövs för nginx och en senare Flask-applikation.
 
-- name: Installera python3
+- name: Installera nödvändiga paket för webservern
   apt:
-    name: python3
+    name:
+      - python3
+      - python3-flask
+      - python3-pip
+      - nginx
     state: present
-    # Installerar Flask för webbapplikationen
+    update_cache: true
 
-- name: Installera python3-flask
-  apt:
-    name: python3-flask
-    state: present
-    # Installerar nginx
-
-- name: Installera nginx
-  apt:
-    name: nginx
-    state: present
-   # Installerar pip för Python-paket
-
-- name: Installera python3-pip
-  apt:
-    name: python3-pip
-    state: present
-     # Skapar katalog för webbapplikationen
+# Skapar en tydlig plats där Flask-applikationen senare kan läggas.
 
 - name: Skapa katalog för Flask-applikation
   file:
     path: /opt/webapp
     state: directory
-    - name: Start nginx
+    owner: vagrant
+    group: vagrant
+    mode: "0755"
+
+# Startar nginx så webservern är igång och aktiveras vid omstart.
+
+- name: Starta och aktivera nginx
   service:
     name: nginx
     state: started
