@@ -218,3 +218,9 @@ I den nuvarande versionen tillåts bland annat:
 Det gör att brandväggen både fungerar som router mellan näten och som säkerhetskontroll för vilka anslutningar som ska tillåtas.
 
 ---
+
+## Säkerhetsanalys
+
+En känd begränsning i den nuvarande implementationen är att statisk routing sätts via provisionering i `Vagrantfile`. Detta val gjordes för att möjliggöra första kontakt mellan `ansible-control` och övriga noder, så att SSH-nycklar kan distribueras och Ansible kan börja användas. Lösningen fungerar för bootstrap, men routingen är mindre robust än en persistent konfiguration via exempelvis netplan. Om enskilda VM:ar startas om separat kan routingen därför behöva återställas. Detta är nu åtgärdat persistant routing via netplan är implementerat i lösning.
+
+Persistent routing verifierades genom att Ansible först lade ut netplan-konfiguration på relevanta noder. Därefter startades `webserver` om med Ansible-modulen `reboot`. Efter omstart verifierades dels att noden åter blev nåbar med `ansible ... -m ping`, dels att de statiska rutterna fortfarande fanns kvar i routingtabellen. Testet visar att routingen inte längre enbart är beroende av provisionering i `Vagrantfile`, utan överlever omstart av enskild VM.
