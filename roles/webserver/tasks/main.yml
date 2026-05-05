@@ -29,6 +29,26 @@
     src: app.py
     dest: /opt/webapp/app.py
 
+ # Skapar systemd-service för Flask-applikationen
+
+- name: Skapa systemd-service för Flask-app
+  template:
+    src: webapp.service.j2
+    dest: /etc/systemd/system/webapp.service
+
+    # Laddar om systemd så den hittar den nya webapp-servicen
+
+- name: Ladda om systemd
+  command: systemctl daemon-reload
+
+# Startar Flask-appen som bakgrundstjänst
+
+- name: Starta och aktivera Flask-app
+  service:
+    name: webapp
+    state: started
+    enabled: true   
+
 # Startar nginx så webservern är igång och aktiveras vid omstart.
 
 - name: Starta och aktivera nginx

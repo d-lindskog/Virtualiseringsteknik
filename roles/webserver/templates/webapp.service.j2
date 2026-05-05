@@ -1,0 +1,12 @@
+[Unit]
+Description=Flask Web Application
+After=network.target
+
+[Service]
+User=vagrant
+WorkingDirectory=/opt/webapp
+ExecStart=/usr/bin/python3 /opt/webapp/app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
