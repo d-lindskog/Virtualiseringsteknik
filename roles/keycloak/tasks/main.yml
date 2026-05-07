@@ -1,0 +1,35 @@
+---
+# Grundinstallation för Keycloak i DMZ.
+# Installerar Java och verktyg som krävs för Keycloak.
+
+- name: Installera nödvändiga paket för Keycloak
+  apt:
+    name:
+      - openjdk-17-jdk
+      - unzip
+    state: present
+    update_cache: true
+
+# Laddar ner Keycloak från GitHub releases.
+
+- name: Ladda ner Keycloak
+  get_url:
+    url: https://github.com/keycloak/keycloak/releases/download/24.0.4/keycloak-24.0.4.zip
+    dest: /tmp/keycloak.zip
+
+# Packar upp Keycloak under /opt.
+
+- name: Extrahera Keycloak
+  unarchive:
+    src: /tmp/keycloak.zip
+    dest: /opt/
+    remote_src: true
+
+# Skapar en tydlig sökväg till installationen.
+
+- name: Skapa symbolisk länk till Keycloak
+  file:
+    src: /opt/keycloak-24.0.4
+    dest: /opt/keycloak
+    state: link
+    
