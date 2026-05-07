@@ -101,16 +101,20 @@ Vagrant.configure("2") do |config|
           apt-get install -y ansible sshpass git jq
         SHELL
 
-        # Hämtar projektets repo till kontrollnoden med git clone.
-        # Detta gör att Ansible-koden finns tillgänglig även utanför /vagrant.
-        # Om repot redan finns, görs ingen ny kloning.
-        node.vm.provision "shell", inline: <<-SHELL
+        # Ansible-control hämtar alltid en färsk kopia av repot från GitHub.
+        # Om mappen redan finns tas den bort först, så att den nya klonen
+        # alltid speglar senaste versionen av branchen.
+        #
+        # OBS:
+        # Detta skriver över den tidigare klonade kopian på ansible-control.
+        # Eventuella lokala ändringar i /home/vagrant/ansible-repo försvinner.
+
+        node.vm.provision "shell", run: "always", inline: <<-SHELL
           set -e
 
           sudo -u vagrant bash -c '
-            if [ ! -d /home/vagrant/ansible-repo/.git ]; then
-              git clone https://github.com/d-lindskog/Virtualiseringsteknik.git /home/vagrant/ansible-repo
-            fi
+            rm -rf /home/vagrant/ansible-repo
+            git clone --branch feature/firewall-common https://github.com/d-lindskog/Virtualiseringsteknik.git /home/vagrant/ansible-repo
           '
         SHELL
         
