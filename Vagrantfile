@@ -100,6 +100,20 @@ Vagrant.configure("2") do |config|
 
           apt-get install -y ansible sshpass git jq
         SHELL
+
+        # Hämtar projektets repo till kontrollnoden med git clone.
+        # Detta gör att Ansible-koden finns tillgänglig även utanför /vagrant.
+        # Om repot redan finns, görs ingen ny kloning.
+        node.vm.provision "shell", inline: <<-SHELL
+          set -e
+
+          sudo -u vagrant bash -c '
+            if [ ! -d /home/vagrant/ansible-repo/.git ]; then
+              git clone https://github.com/d-lindskog/Virtualiseringsteknik.git /home/vagrant/ansible-repo
+            fi
+          '
+        SHELL
+        
       end
 
       # Alla maskiner hämtar control-nodens public key

@@ -1,4 +1,6 @@
 *.sh text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+*.md text eol=lf
 Vagrantfile text eol=lf
+ansible.cfg text eol=lf
