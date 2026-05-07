@@ -1,42 +1,103 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, redirect, session, url_for, render_template_string
 
 app = Flask(__name__)
+app.secret_key = "byt-denna-senare"
 
-login_page = """
+home_page = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+    <title>Webserver</title>
 </head>
 <body>
-    <h1>Logga in</h1>
+    <h1>Webserver i DMZ</h1>
 
-    <form method="POST" action="/login">
-        <label>Användarnamn:</label><br>
-        <input type="text" name="username"><br><br>
+    {% if user %}
+        <p>Inloggad som {{ user }}</p>
 
-        <label>Lösenord:</label><br>
-        <input type="password" name="password"><br><br>
+        <a href="/dashboard">Gå till dashboard</a>
+        <br><br>
 
-        <button type="submit">Logga in</button>
-    </form>
+        <a href="/logout">Logga ut</a>
+
+    {% else %}
+        <p>Du är inte inloggad.</p>
+
+        <a href="/login">Logga in med Keycloak</a>
+    {% endif %}
+
+</body>
+</html>
+"""
+
+dashboard_page = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+
+    <h1>Dashboard</h1>
+
+    <p>Inloggad som {{ user }}</p>
+
+    <p>Data från databasen: {{ message }}</p>
+
+    <a href="/logout">Logga ut</a>
+
 </body>
 </html>
 """
 
 @app.route("/")
-def index():
-    return render_template_string(login_page)
+def home():
+    user = session.get("user")
+    return render_template_string(home_page, user=user)
 
-@app.route("/login", methods=["POST"])
+@app.route("/login")
 def login():
-    username = request.form.get("username")
-    password = request.form.get("password")
 
-    if not username or not password:
-        return "Användarnamn och lösenord krävs", 400
+    # Nästa steg:
+    # här ska användaren skickas vidare till Keycloak
 
-    return f"Inloggningsförsök mottaget för användare: {username}. Nästa steg är Keycloak."
+    return redirect(url_for("callback"))
+
+@app.route("/auth/callback")
+def callback():
+
+    # Nästa steg:
+    # här ska Flask ta emot användaren från Keycloak
+    # och skapa session efter lyckad inloggning
+
+    session["user"] = "student"
+
+    return redirect(url_for("dashboard"))
+
+@app.route("/dashboard")
+def dashboard():
+
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    # Nästa steg:
+    # här ska appen läsa databasuppgifter från Vault
+    # och sedan hämta data från databasen
+
+    message = "Hej från databasen"
+
+    return render_template_string(
+        dashboard_page,
+        user=session["user"],
+        message=message
+    )
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    return redirect(url_for("home"))
 
 @app.route("/health")
 def health():
