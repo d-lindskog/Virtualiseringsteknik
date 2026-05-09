@@ -51,7 +51,28 @@
     name: webapp
     state: started
     enabled: true   
+# Lägger ut nginx-konfiguration för Flask-applikationen.
 
+- name: Lägg ut nginx-konfiguration för webappen
+  template:
+    src: webapp.nginx.j2
+    dest: /etc/nginx/sites-available/webapp
+
+# Aktiverar nginx-siten genom symbolisk länk.
+
+- name: Aktivera nginx-site
+  file:
+    src: /etc/nginx/sites-available/webapp
+    dest: /etc/nginx/sites-enabled/webapp
+    state: link
+
+# Tar bort default-siten så vår webapp används.
+
+- name: Ta bort default nginx-site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+    
 # Startar nginx så webservern är igång och aktiveras vid omstart.
 
 - name: Starta och aktivera nginx
