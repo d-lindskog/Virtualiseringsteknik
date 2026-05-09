@@ -22,12 +22,15 @@
     group: vagrant
     mode: "0755"
 
-# Kopierar Flask-applikationen från Ansible till webservern
+# Lägger ut Flask-applikationen från en template så Keycloak-variabler kan användas.
 
-- name: Kopiera Flask-app till servern
-  copy:
-    src: app.py
-    dest: /opt/webapp/app.py
+- name: Lägg ut Flask-app från template
+  template:
+    src: app.py.j2
+    dest: "{{ webapp_dir }}/app.py"
+    owner: "{{ webapp_user }}"
+    group: "{{ webapp_group }}"
+    mode: "0644"
 
  # Skapar systemd-service för Flask-applikationen
 
