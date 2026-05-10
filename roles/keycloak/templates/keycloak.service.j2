@@ -1,0 +1,15 @@
+[Unit]
+Description=Keycloak Server
+After=network.target
+
+[Service]
+User=vagrant
+Group=vagrant
+WorkingDirectory=/opt/keycloak
+ExecStart=/opt/keycloak/bin/kc.sh start-dev --http-host=0.0.0.0 --http-port=8080
+Restart=always
+Environment=KEYCLOAK_ADMIN=admin
+Environment=KEYCLOAK_ADMIN_PASSWORD=admin
+
+[Install]
+WantedBy=multi-user.target
