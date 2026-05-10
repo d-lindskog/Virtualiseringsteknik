@@ -14,3 +14,9 @@
   roles:
     - webserver
     
+    - name: Konfigurera Keycloak i DMZ
+  hosts: keycloak
+  become: yes
+  roles:
+    - keycloak
+    
