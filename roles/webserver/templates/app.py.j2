@@ -4,6 +4,7 @@ app = Flask(__name__)
 app.secret_key = "{{ flask_secret_key }}"
 
 home_page = """
+{% raw %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -28,9 +29,11 @@ home_page = """
 
 </body>
 </html>
+{% endraw %}
 """
 
 dashboard_page = """
+{% raw %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -48,6 +51,7 @@ dashboard_page = """
 
 </body>
 </html>
+{% endraw %}
 """
 
 @app.route("/")
@@ -57,32 +61,17 @@ def home():
 
 @app.route("/login")
 def login():
-
-    # Nästa steg:
-    # här ska användaren skickas vidare till Keycloak
-
     return redirect(url_for("callback"))
 
 @app.route("/auth/callback")
 def callback():
-
-    # Nästa steg:
-    # här ska Flask ta emot användaren från Keycloak
-    # och skapa session efter lyckad inloggning
-
     session["user"] = "student"
-
     return redirect(url_for("dashboard"))
 
 @app.route("/dashboard")
 def dashboard():
-
     if "user" not in session:
         return redirect(url_for("login"))
-
-    # Nästa steg:
-    # här ska appen läsa databasuppgifter från Vault
-    # och sedan hämta data från databasen
 
     message = "Hej från databasen"
 
@@ -94,9 +83,7 @@ def dashboard():
 
 @app.route("/logout")
 def logout():
-
     session.clear()
-
     return redirect(url_for("home"))
 
 @app.route("/health")
@@ -104,5 +91,5 @@ def health():
     return {"status": "ok"}
 
 if __name__ == "__main__":
-app.run(host="{{ flask_host }}", port={{ flask_port }})
+    app.run(host="{{ flask_host }}", port={{ flask_port }})
     
