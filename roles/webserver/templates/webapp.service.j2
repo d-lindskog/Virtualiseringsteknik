@@ -3,10 +3,13 @@ Description=Flask Web Application
 After=network.target
 
 [Service]
-User=vagrant
-WorkingDirectory=/opt/webapp
-ExecStart=/usr/bin/python3 /opt/webapp/app.py
+User={{ webapp_user }}
+Group={{ webapp_group }}
+WorkingDirectory={{ webapp_dir }}
+ExecStart=/usr/bin/python3 {{ webapp_dir }}/app.py
 Restart=always
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target
+
