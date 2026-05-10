@@ -7,3 +7,10 @@
   become: yes
   roles:
     - firewall
+
+- name: Konfigurera webserver i DMZ
+  hosts: webserver
+  become: yes
+  roles:
+    - webserver
+    
