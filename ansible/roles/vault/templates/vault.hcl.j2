@@ -1,0 +1,32 @@
+# vault.hcl.j2 - Vault konfigurationsfil
+# Varför: Denna fil styr hur Vault fungerar på servern.
+# Jinja2-variabler ({{ }}) fylls i automatiskt av Ansible
+# med värden från defaults/main.yml när playboken körs.
+
+# Storage backend
+# Varför: Talar om för Vault var den ska lagra sin data.
+# Vi använder "file" storage i labbmiljö - enkelt och kräver
+# ingen extern databas. I produktion används Consul eller liknande.
+storage "file" {
+  path = "{{ vault_data_dir }}"  # Hämtas från defaults/main.yml
+}
+
+# Listener - nätverksinställningar
+# Varför: Definierar vilken IP och port Vault lyssnar på.
+# tls_disable = 1 används i labbmiljö för enkelhetens skull.
+# I produktion ska TLS alltid vara aktiverat för krypterad kommunikation.
+listener "tcp" {
+  address     = "{{ vault_address }}:{{ vault_port }}"  # IP och port från defaults
+  tls_disable = 1  # Varning: Endast OK i labbmiljö - aldrig i produktion!
+}
+
+# API-adress
+# Varför: Talar om för Vault-klienter var de hittar Vault-servern.
+# Används när andra tjänster som webservern ska kommunicera med Vault.
+api_addr = "http://{{ vault_address }}:{{ vault_port }}"
+
+# UI
+# Varför: Aktiverar Vaults inbyggda webbgränssnitt.
+# Praktiskt i labbmiljö för att se och hantera hemligheter via webbläsaren
+# på http://192.168.30.10:8200/ui
+ui = true

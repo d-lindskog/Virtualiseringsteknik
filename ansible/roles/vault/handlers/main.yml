@@ -1,0 +1,15 @@
+---
+# Körs endast om Vault-konfigurationen förändrats
+# notify: Starta om Vault - används i tasks när konfigfilen ändras
+- name: Starta om Vault
+  systemd:
+    name: vault        # Namnet på systemd-tjänsten
+    state: restarted   # Startar om tjänsten
+
+# Körs när Vault installeras och startas för första gången
+# notify: Starta Vault - används i tasks efter installation
+- name: Starta Vault
+  systemd:
+    name: vault        # Namnet på systemd-tjänsten
+    state: started     # Startar tjänsten om den inte redan körs
+    enabled: yes       # Vault startar automatiskt vid omstart av servern
