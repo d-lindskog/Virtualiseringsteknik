@@ -1,0 +1,14 @@
+# Vault-konfiguration
+vault_addr: "http://192.168.30.10:8200"
+vault_token: "{{ lookup('env', 'VAULT_TOKEN') }}"
+vault_secret_path: "secret/data/database"
+
+# Databaskonfiguration
+db_name: "appdb"
+db_user: "appuser"
+db_host: "192.168.30.20"
+db_port: 5432
+
+# Nätverksinställningar
+webserver_ip: "192.168.20.30"
+backend_net_ip: "192.168.30.20"
