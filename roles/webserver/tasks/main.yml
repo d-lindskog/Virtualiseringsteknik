@@ -80,27 +80,3 @@
     name: nginx
     state: started
     enabled: true
-
-# Skapar systemd-service för Keycloak.
-
-- name: Skapa systemd-service för Keycloak
-  template:
-    src: keycloak.service.j2
-    dest: /etc/systemd/system/keycloak.service
-    owner: root
-    group: root
-    mode: "0644"
-
-# Laddar om systemd så den hittar Keycloak-servicen.
-
-- name: Ladda om systemd
-  command: systemctl daemon-reload
-
-# Startar och aktiverar Keycloak.
-
-- name: Starta och aktivera Keycloak
-  service:
-    name: keycloak
-    state: started
-    enabled: true
-    
