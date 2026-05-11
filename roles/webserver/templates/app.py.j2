@@ -61,7 +61,14 @@ def home():
 
 @app.route("/login")
 def login():
-    return redirect(url_for("callback"))
+    keycloak_url = (
+        "http://192.168.20.10:8080/realms/lab/protocol/openid-connect/auth"
+        "?client_id=webapp"
+        "&response_type=code"
+        "&redirect_uri=http://192.168.20.30/auth/callback"
+    )
+
+    return redirect(keycloak_url)
 
 @app.route("/auth/callback")
 def callback():
