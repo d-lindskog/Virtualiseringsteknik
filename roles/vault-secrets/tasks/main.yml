@@ -1,0 +1,112 @@
+---
+# Läser init-data från vault-init (root token + unseal keys)
+
+- name: Load Vault init data
+  slurp:
+    src: /vagrant/shared_keys/vault_init.json
+  register: vault_init_data
+
+- name: Parse Vault init JSON
+  set_fact:
+    vault_init_parsed: "{{ vault_init_data.content | b64decode | from_json }}"
+
+- name: Set Vault root token fact
+  set_fact:
+    vault_root_token: "{{ vault_init_parsed.root_token }}"
+
+# Sätter upp miljövariabler för vault-CLI (ingen hårdkodning)
+
+- name: Set Vault environment variables
+  set_fact:
+    vault_env:
+      VAULT_ADDR: "http://127.0.0.1:8200"
+      VAULT_TOKEN: "{{ vault_root_token }}"
+
+# Aktivera database secrets engine (idempotent)
+
+- name: Enable database secrets engine
+  command: vault secrets enable database
+  environment: "{{ vault_env }}"
+  register: vault_enable_db
+  failed_when: vault_enable_db.rc not in [0, 2]
+  changed_when: "'successfully enabled' in vault_enable_db.stdout"
+  args:
+    warn: false
+
+# Konfigurera koppling till PostgreSQL
+# Variabler definierade i group_vars:
+# db_host, db_admin_user, db_admin_password
+
+- name: Configure PostgreSQL database connection in Vault
+  command: >
+    vault write database/config/main-postgres
+    plugin_name=postgresql-database-plugin
+    allowed_roles="app-role,readonly-role"
+    connection_url="postgresql://{{ db_admin_user }}:{{ db_admin_password }}@{{ db_host }}:5432/postgres?sslmode=disable"
+  environment: "{{ vault_env }}"
+  args:
+    warn: false
+
+# Skapa dynamisk app-role (read/write)
+
+- name: Create app-role for dynamic DB credentials
+  command: >
+    vault write database/roles/app-role
+    db_name=main-postgres
+    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT ALL PRIVILEGES ON DATABASE postgres TO \"{{name}}\";"
+    default_ttl=1h
+    max_ttl=24h
+  environment: "{{ vault_env }}"
+  args:
+    warn: false
+
+# Skapa readonly-role (endast SELECT)
+
+- name: Create readonly-role for dynamic DB credentials
+  command: >
+    vault write database/roles/readonly-role
+    db_name=main-postgres
+    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT CONNECT ON DATABASE postgres TO \"{{name}}\";"
+    default_ttl=1h
+    max_ttl=24h
+  environment: "{{ vault_env }}"
+  args:
+    warn: false
+
+# Skapa policy för app som får hämta fulla credentials
+
+- name: Create policy for app-role
+  copy:
+    dest: /tmp/app-role-policy.hcl
+    content: |
+      path "database/creds/app-role" {
+        capabilities = ["read"]
+      }
+  notify: Apply app-role policy
+
+- name: Create policy for readonly-role
+  copy:
+    dest: /tmp/readonly-role-policy.hcl
+    content: |
+      path "database/creds/readonly-role" {
+        capabilities = ["read"]
+      }
+  notify: Apply readonly-role policy
+
+# Skapa tokens för applikationer baserat på policies
+
+- name: Create token for app-role
+  command: >
+    vault token create
+    -policy=app-role-policy
+    -format=json
+  environment: "{{ vault_env }}"
+  register: app_role_token
+  changed_when: false
+  args:
+    warn: false
+
+- name: Save app-role token to shared file
+  copy:
+    content: "{{ app_role_token.stdout }}"
+    dest: /vagrant/shared_keys/app-role-token.json

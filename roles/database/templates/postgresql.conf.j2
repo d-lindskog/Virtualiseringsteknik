@@ -1,0 +1,16 @@
+# Hanteras av Ansible – redigera ej manuellt
+
+# Lyssna på BACKEND-NET-adressen (inte bara localhost)
+listen_addresses = '{{ backend_net_ip }}'
+port = {{ db_port }}
+
+# Anslutningsinställningar
+max_connections = 100
+shared_buffers = 128MB
+
+# Loggning
+logging_collector = on
+log_directory = 'log'
+log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+log_connections = on
+log_disconnections = on

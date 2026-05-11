@@ -13,13 +13,13 @@
     repo: "deb https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
     state: present
 
-# Steg 3 - Installera Vault
-# Installerar den version som definierats i defaults/main.yml
-- name: Installera Vault
+#installer senaste versionen av vault
+
+- name: Installera senaste Vault-versionen
   apt:
-    name: "vault={{ vault_version }}"
-    state: present
-    update_cache: yes  # Uppdaterar paketlistan efter att nytt repo lagts till
+    name: vault
+    state: latest
+    update_cache: yes
 
 # Steg 4 - Skapa konfigurationsmapp
 # Vault behöver en egen mapp för sin konfigurationsfil

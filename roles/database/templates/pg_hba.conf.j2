@@ -1,0 +1,11 @@
+# Hanteras av Ansible – redigera ej manuellt
+# TYPE  DATABASE    USER        ADDRESS                 METHOD
+
+# Lokal systemtillgång för postgres-användaren (drift)
+local   all         postgres                            peer
+
+# Tillåt ENDAST webbservern att ansluta – blockera allt annat
+host    {{ db_name }}  {{ db_user }}  {{ webserver_ip }}/32  scram-sha-256
+
+# Blockera alla övriga fjärranslutningar (implicit, men tydlig kommentar)
+# Inga fler regler = allt annat nekas

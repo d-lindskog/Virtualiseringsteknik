@@ -1,0 +1,31 @@
+---
+# tasks file for roles/vault-init
+- name: Initialize Vault
+  command: vault operator init -format=json
+  register: vault_init_output
+  args:
+    creates: /vagrant/shared_keys/vault_init.json
+
+- name: Save Vault init output
+  copy:
+    content: "{{ vault_init_output.stdout }}"
+    dest: /vagrant/shared_keys/vault_init.json
+  when: vault_init_output.stdout is defined
+
+- name: Load Vault init data
+  slurp:
+    src: /vagrant/shared_keys/vault_init.json
+  register: vault_init_data
+
+- name: Parse Vault init JSON
+  set_fact:
+    vault_init_parsed: "{{ vault_init_data.content | b64decode | from_json }}"
+
+- name: Unseal Vault (1/3)
+  command: vault operator unseal {{ vault_init_parsed.unseal_keys_b64[0] }}
+
+- name: Unseal Vault (2/3)
+  command: vault operator unseal {{ vault_init_parsed.unseal_keys_b64[1] }}
+
+- name: Unseal Vault (3/3)
+  command: vault operator unseal {{ vault_init_parsed.unseal_keys_b64[2] }}

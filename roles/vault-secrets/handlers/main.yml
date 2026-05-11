@@ -1,0 +1,13 @@
+---
+# handlers file for roles/vault-secrets
+- name: Apply app-role policy
+  command: vault policy write app-role-policy /tmp/app-role-policy.hcl
+  environment: "{{ vault_env }}"
+  args:
+    warn: false
+
+- name: Apply readonly-role policy
+  command: vault policy write readonly-role-policy /tmp/readonly-role-policy.hcl
+  environment: "{{ vault_env }}"
+  args:
+    warn: false

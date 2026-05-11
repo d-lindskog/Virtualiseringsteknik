@@ -1,8 +1,6 @@
 ---
-# Styr vilken version av Vault som installeras
-vault_version: "1.15.0"
 
-# Vault-VMens IP från inventory (192.168.30.10 = Backend-nät)
+# Vault-VMets IP från inventory (192.168.30.10 = Backend-nät)
 vault_address: "192.168.30.10"
 
 # 8200 är Vaults standardport för API och UI

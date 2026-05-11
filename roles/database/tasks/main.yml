@@ -1,0 +1,86 @@
+---
+# ============================================================
+# STEG 1: Installera paket
+# ============================================================
+- name: Installera PostgreSQL och psycopg2
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+      - python3-psycopg2
+    state: present
+    update_cache: true
+
+# ============================================================
+# STEG 2: Hämta lösenord från Vault
+# ============================================================
+- name: Hämta databaslösenord från Vault via URI
+  ansible.builtin.uri:
+    url: "{{ vault_addr }}/v1/{{ vault_secret_path }}"
+    method: GET
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    return_content: true
+    status_code: 200
+  register: vault_response
+  no_log: true  # Loggar INTE svaret – lösenordet syns ej i output
+
+- name: Spara lösenordet som variabel
+  ansible.builtin.set_fact:
+    db_password: "{{ vault_response.json.data.data.password }}"
+  no_log: true
+
+# ============================================================
+# STEG 3: Konfigurera nätverk (postgresql.conf + pg_hba.conf)
+# ============================================================
+- name: Rulla ut postgresql.conf från template
+  ansible.builtin.template:
+    src: postgresql.conf.j2
+    dest: /etc/postgresql/15/main/postgresql.conf
+    owner: postgres
+    group: postgres
+    mode: '0644'
+  notify: Restart PostgreSQL
+
+- name: Rulla ut pg_hba.conf från template
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: /etc/postgresql/15/main/pg_hba.conf
+    owner: postgres
+    group: postgres
+    mode: '0640'
+  notify: Restart PostgreSQL
+
+# ============================================================
+# STEG 4: Se till att PostgreSQL är igång
+# ============================================================
+- name: Aktivera och starta PostgreSQL
+  ansible.builtin.systemd:
+    name: postgresql
+    state: started
+    enabled: true
+
+# Flush handlers här för att säkra omstart INNAN vi skapar DB/användare
+- name: Flush handlers (omstart om config ändrades)
+  ansible.builtin.meta: flush_handlers
+
+# ============================================================
+# STEG 5: Skapa databas och användare
+# ============================================================
+- name: Skapa databas
+  community.postgresql.postgresql_db:
+    name: "{{ db_name }}"
+    state: present
+  become: true
+  become_user: postgres
+
+- name: Skapa databasanvändare med lösenord från Vault
+  community.postgresql.postgresql_user:
+    db: "{{ db_name }}"
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    priv: "ALL"
+    state: present
+  become: true
+  become_user: postgres
+  no_log: true  # Lösenordet loggas ej

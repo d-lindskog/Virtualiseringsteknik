@@ -12,3 +12,7 @@ db_port: 5432
 # Nätverksinställningar
 webserver_ip: "192.168.20.30"
 backend_net_ip: "192.168.30.20"
+
+db_host: "127.0.0.1"
+db_admin_user: "postgres"
+db_admin_password: "din_admin_lösen_från_database-rollen"
