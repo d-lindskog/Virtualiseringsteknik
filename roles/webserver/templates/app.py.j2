@@ -1,7 +1,13 @@
-from flask import Flask, redirect, session, url_for, render_template_string
+from flask import Flask, redirect, session, url_for, request, render_template_string
+import requests
 
 app = Flask(__name__)
 app.secret_key = "{{ flask_secret_key }}"
+
+KEYCLOAK_BASE_URL = "http://192.168.20.10:8080"
+KEYCLOAK_REALM = "lab"
+KEYCLOAK_CLIENT_ID = "webapp"
+REDIRECT_URI = "http://192.168.20.30/auth/callback"
 
 home_page = """
 {% raw %}
@@ -72,7 +78,28 @@ def login():
 
 @app.route("/auth/callback")
 def callback():
+    code = request.args.get("code")
+
+    token_url = (
+        f"{KEYCLOAK_BASE_URL}/realms/{KEYCLOAK_REALM}"
+        "/protocol/openid-connect/token"
+    )
+
+    response = requests.post(
+        token_url,
+        data={
+            "grant_type": "authorization_code",
+            "client_id": KEYCLOAK_CLIENT_ID,
+            "code": code,
+            "redirect_uri": REDIRECT_URI,
+        },
+    )
+
+    token_data = response.json()
+
+    session["token"] = token_data.get("access_token")
     session["user"] = "student"
+
     return redirect(url_for("dashboard"))
 
 @app.route("/dashboard")
