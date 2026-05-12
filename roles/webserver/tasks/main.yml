@@ -79,5 +79,5 @@
 - name: Starta och aktivera nginx
   service:
     name: nginx
-    state: started
+    state: restarted
     enabled: true

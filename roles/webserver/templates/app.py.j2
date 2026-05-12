@@ -71,6 +71,7 @@ def login():
         "http://192.168.20.10:8080/realms/lab/protocol/openid-connect/auth"
         "?client_id=webapp"
         "&response_type=code"
+        "&scope=openid"
         "&redirect_uri=http://192.168.20.30/auth/callback"
     )
 
