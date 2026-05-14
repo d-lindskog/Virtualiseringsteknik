@@ -106,7 +106,7 @@ def callback():
     session["token"] = access_token
     session["user"] = "student"
 
-    return redirect(url_for("dashboard"))
+    return redirect("http://localhost:8080/dashboard")
 
 @app.route("/dashboard")
 def dashboard():
