@@ -16,6 +16,7 @@ TOKEN_URL = f"{KEYCLOAK_INTERNAL_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-co
 USERINFO_URL = f"{KEYCLOAK_INTERNAL_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/userinfo"
 
 home_page = """
+{% raw %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -39,9 +40,11 @@ home_page = """
 
 </body>
 </html>
+{% endraw %}
 """
 
 dashboard_page = """
+{% raw %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -59,6 +62,7 @@ dashboard_page = """
 
 </body>
 </html>
+{% endraw %}
 """
 
 @app.route("/")
