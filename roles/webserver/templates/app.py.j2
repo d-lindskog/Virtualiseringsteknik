@@ -5,17 +5,17 @@ import requests
 app = Flask(__name__)
 app.secret_key = "{{ flask_secret_key }}"
 
-KEYCLOAK_BASE_URL = "{{ keycloak_base_url }}"
+KEYCLOAK_INTERNAL_URL = "{{ keycloak_internal_url }}"
+KEYCLOAK_EXTERNAL_URL = "{{ keycloak_external_url }}"
 KEYCLOAK_REALM = "{{ keycloak_realm }}"
 KEYCLOAK_CLIENT_ID = "{{ keycloak_client_id }}"
 KEYCLOAK_REDIRECT_URI = "{{ keycloak_redirect_uri }}"
 
-AUTH_URL = f"{KEYCLOAK_BASE_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/auth"
-TOKEN_URL = f"{KEYCLOAK_BASE_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/token"
-USERINFO_URL = f"{KEYCLOAK_BASE_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/userinfo"
+AUTH_URL = f"{KEYCLOAK_EXTERNAL_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/auth"
+TOKEN_URL = f"{KEYCLOAK_INTERNAL_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/token"
+USERINFO_URL = f"{KEYCLOAK_INTERNAL_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/userinfo"
 
 home_page = """
-{% raw %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -39,11 +39,9 @@ home_page = """
 
 </body>
 </html>
-{% endraw %}
 """
 
 dashboard_page = """
-{% raw %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -61,7 +59,6 @@ dashboard_page = """
 
 </body>
 </html>
-{% endraw %}
 """
 
 @app.route("/")
@@ -106,18 +103,8 @@ def callback():
     if not access_token:
         return "Ingen access token mottogs", 500
 
-    userinfo_response = requests.get(
-        USERINFO_URL,
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
-
-    if userinfo_response.status_code != 200:
-        return f"Kunde inte hämta användarinformation: {userinfo_response.text}", 500
-
-    userinfo = userinfo_response.json()
-
     session["token"] = access_token
-    session["user"] = userinfo.get("preferred_username", "okänd användare")
+    session["user"] = "student"
 
     return redirect(url_for("dashboard"))
 
@@ -144,5 +131,5 @@ def health():
     return {"status": "ok"}
 
 if __name__ == "__main__":
-    app.run(host="{{ flask_host }}", port={{ flask_port }})
+    app.run(host="0.0.0.0", port=5000)
     
