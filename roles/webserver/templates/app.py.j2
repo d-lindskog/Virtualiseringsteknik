@@ -128,12 +128,13 @@ def dashboard():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("home"))
+    return redirect("http://localhost:8080")
 
-@app.route("/health")
+    @app.route("/health")
 def health():
     return {"status": "ok"}
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+    
     
