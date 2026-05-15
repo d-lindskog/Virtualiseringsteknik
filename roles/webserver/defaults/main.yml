@@ -9,7 +9,7 @@ webapp_service_name: "webapp"
 flask_host: "0.0.0.0"
 flask_port: 5000
 
-webapp_external_url: "http://192.168.20.30"
+webapp_external_url: "http://localhost:8080"
 
 keycloak_internal_url: "http://192.168.20.10:8080"
 keycloak_external_url: "http://localhost:8081"

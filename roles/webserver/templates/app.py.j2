@@ -110,7 +110,7 @@ def callback():
     session["token"] = access_token
     session["user"] = "student"
 
-    return redirect("http://localhost:8080/dashboard")
+    return redirect(url_for("dashboard"))
 
 @app.route("/dashboard")
 def dashboard():
@@ -128,13 +128,11 @@ def dashboard():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect("http://localhost:8080")
+    return redirect(url_for("home"))
 
-    @app.route("/health")
+@app.route("/health")
 def health():
     return {"status": "ok"}
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-    
-    
+    app.run(host="{{ flask_host }}", port={{ flask_port }})
