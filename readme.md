@@ -1,6 +1,6 @@
 # Virtualiseringsteknik – Segmenterad labbmiljö med Vagrant och Ansible
 
-> En segmenterad labbmiljö byggd i VirtualBox med Vagrant och Ansible. Projektet simulerar ett inloggningsflöde där en användare går till en webserver, autentiseras via Keycloak, varefter webservern hämtar databasuppgifter från Vault och ansluter till databasen. Trafiken separeras mellan frontend, DMZ och backend via en central tre-bent brandvägg.
+> En segmenterad labbmiljö byggd i VirtualBox med Vagrant och Ansible. Projektet visar hur en miljö kan byggas upp med frontend, DMZ och backend, där trafik styrs mellan zonerna via en central tre-bent brandvägg. I den nuvarande versionen fungerar DMZ-delen med webserver, Keycloak, verifieringsscript och browserdemo via port forwarding.
 
 ---
 
@@ -16,18 +16,27 @@ Projektet är uppbyggt för att visa flera säkerhetsprinciper i samma lösning:
 - secrets-hantering via Vault
 - åtkomst till backend endast genom kontrollerade flöden
 
-### Övergripande flöde
+### Nuvarande status
 
-Projektet är utformat för att simulera följande händelsekedja:
+Det som är klart i den nuvarande versionen är:
 
-1. Användaren går till webservern i DMZ.
-2. Webservern kräver inloggning och skickar användaren vidare till Keycloak.
-3. Keycloak autentiserar användaren och returnerar användaren till webservern.
-4. Webservern hämtar databasuppgifter från Vault.
-5. Webservern ansluter till databasen i backend.
-6. Webservern visar data för den inloggade användaren.
+- Vagrant skapar hela topologin i VirtualBox
+- Ansible kan konfigurera alla noder
+- brandväggen routar och filtrerar mellan frontend, DMZ och backend
+- persistent routing via netplan är implementerad
+- webserver i DMZ fungerar
+- Keycloak i DMZ fungerar
+- `/login` redirectar korrekt till Keycloak
+- browserdemo fungerar via `localhost:8080` och `localhost:8081`
+- automatiserade verifieringsscript finns för åtkomst, routing och DMZ
 
-Detta gör att projektet visar både autentisering, secrets-hantering, databaskoppling och nätsegmentering i samma labbmiljö.
+Det som ännu inte är färdigkopplat är:
+
+- att webbappen hämtar secrets från Vault
+- att webbappen ansluter till databasen i backend
+- att dashboard visar riktig backend-data
+
+Projektet visar alltså redan en fungerande automatiserad, segmenterad och verifierad infrastruktur, även om backend-integrationen ännu inte är helt färdig.
 
 ---
 
@@ -45,13 +54,15 @@ Detta gör att projektet visar både autentisering, secrets-hantering, databasko
   - [Rollen common](#rollen-common)
   - [Rollen firewall](#rollen-firewall)
   - [Rollen routes](#rollen-routes)
+  - [Rollen webserver](#rollen-webserver)
+  - [Rollen keycloak](#rollen-keycloak)
 - [Krav och förutsättningar](#krav-och-förutsättningar)
 - [Kom igång](#kom-igång)
-- [Secrets](#secrets)
+- [Verifiering](#verifiering)
 - [Säkerhetsåtgärder](#säkerhetsåtgärder)
 - [Säkerhetsanalys](#säkerhetsanalys)
-- [Verifiering](#verifiering)
 - [Designval och motivering](#designval-och-motivering)
+- [Avgränsningar](#avgränsningar)
 
 ---
 
@@ -65,7 +76,28 @@ Miljön består av tre nätsegment och en central tre-bent brandvägg:
 - **Service-net / DMZ**: `192.168.20.0/24`
 - **Backend-net**: `192.168.30.0/24`
 
-Brandväggen routar och filtrerar trafik mellan näten. Ansible-control ligger i frontend-nätet och används för administration via SSH. Webserver och Keycloak ligger i DMZ. Vault och databas ligger i backend.
+Brandväggen routar och filtrerar trafik mellan näten. `ansible-control` ligger i frontend-nätet och används för administration via SSH och Ansible. `webserver` och `keycloak` ligger i DMZ. `vault` och `database` ligger i backend.
+
+### Nuvarande applikationsflöde
+
+Det som fungerar i nuläget är följande flöde:
+
+1. användaren öppnar webbappen
+2. webbappen visas via nginx och Flask i DMZ
+3. användaren klickar på login
+4. webbappen redirectar användaren till Keycloak
+5. Keycloak hanterar autentisering
+6. redirecten tillbaka till webbappen fungerar i browserdemo
+
+### Planerat nästa steg
+
+Nästa steg i lösningen är att låta webbappen:
+
+1. hämta databasuppgifter från Vault
+2. ansluta till databasen i backend
+3. visa riktig data på dashboard
+
+Detta är planerat i arkitekturen men ännu inte helt färdigimplementerat i `main`.
 
 ---
 
@@ -73,12 +105,12 @@ Brandväggen routar och filtrerar trafik mellan näten. Ansible-control ligger i
 
 | VM | Roll | IP-adress | Port forwarding | Beskrivning |
 |---|---|---|---|---|
-| `ansible-control` | Kontrollnod | 192.168.10.100 | Vagrant SSH via NAT | Kör Ansible och hanterar övriga noder |
-| `firewall` | Gateway / brandvägg | 192.168.10.1 / 192.168.20.1 / 192.168.30.1 | Vagrant SSH via NAT | Routar och filtrerar trafik mellan frontend, DMZ och backend |
-| `webserver` | Applikationsserver | 192.168.20.30 | — | Ska senare exponera webbapplikationen i DMZ |
-| `keycloak` | Identitet och token | 192.168.20.10 | — | Ska senare hantera autentisering |
-| `vault` | Secrets manager | 192.168.30.10 | — | Ska senare lagra och lämna ut applikationshemligheter |
-| `database` | Databasserver | 192.168.30.20 | — | Ska senare innehålla applikationsdata |
+| `ansible-control` | Kontrollnod | `192.168.10.100` | Vagrant SSH via NAT | Kör Ansible och hanterar övriga noder |
+| `firewall` | Gateway / brandvägg | `192.168.10.1` / `192.168.20.1` / `192.168.30.1` | Vagrant SSH via NAT | Routar och filtrerar trafik mellan frontend, DMZ och backend |
+| `webserver` | Applikationsserver i DMZ | `192.168.20.30` | `localhost:8080 -> 80` | Kör Flask bakom nginx |
+| `keycloak` | Identitetstjänst i DMZ | `192.168.20.10` | `localhost:8081 -> 8080` | Hanterar autentisering |
+| `vault` | Secrets manager | `192.168.30.10` | — | Backend-komponent för hemligheter |
+| `database` | Databasserver | `192.168.30.20` | — | Backend-komponent för data |
 
 ---
 
@@ -108,6 +140,10 @@ repo/
 │   │   └── templates/
 │   │       └── nftables.conf.j2
 │   ├── keycloak/
+│   │   ├── tasks/
+│   │   │   └── main.yml
+│   │   └── templates/
+│   │       └── keycloak.service.j2
 │   ├── routes/
 │   │   ├── handlers/
 │   │   │   └── main.yml
@@ -116,174 +152,215 @@ repo/
 │   │   └── templates/
 │   │       └── routes.yaml.j2
 │   ├── vault/
-│   │   ├── defaults/
-│   │   │   └── main.yml
-│   │   ├── handlers/
-│   │   │   └── main.yml
-│   │   ├── tasks/
-│   │   │   └── main.yml
-│   │   └── templates/
-│   │       └── vault.hcl.j2
 │   └── webserver/
+│       ├── defaults/
+│       │   └── main.yml
+│       ├── handlers/
+│       │   └── main.yml
+│       ├── tasks/
+│       │   └── main.yml
+│       └── templates/
+│           ├── app.py.j2
+│           ├── webapp.nginx.j2
+│           └── webapp.service.j2
 ├── shared_keys/
 │   └── control.pub
 ├── test/
-│   └── verifiera-01.sh
-│   └── verifiera-02.sh
+│   ├── verifiera-01.sh
+│   ├── verifiera-02.sh
+│   └── verifiera-03.sh
 ├── .gitattributes
 ├── .gitignore
 ├── inventory.ini
 ├── readme.md
 ├── site.yml
 └── Vagrantfile
-
 ```
 
+---
 
 ## Komponenter
 
 ### ansible.cfg
 
-Filen `ansible.cfg` används för att styra Ansible:s standardbeteende i projektet. I denna labbmiljö används den för att ange `inventory.ini` som standard-inventory och för att stänga av `host_key_checking`.
+Filen `ansible.cfg` används för att styra Ansible:s standardbeteende i projektet. Den används för att ange `inventory.ini` som inventory och för att förenkla anslutning i labbmiljön.
 
-Detta gör att Ansible-kommandon kan köras utan att `-i inventory.ini` behöver anges varje gång. Att stänga av host key checking förenklar arbetet i en virtualiserad labbmiljö där virtuella maskiner ofta skapas om, provisioneras på nytt eller byter SSH-nycklar. I en produktionsmiljö bör host key checking normalt vara aktiverat, men i denna labb valdes det bort för att minska friktion vid test och automation.
+I vissa fall körs Ansible från `/vagrant`, vilket är en world-writable delad katalog. Då ignorerar Ansible `ansible.cfg`, och kommandon körs därför ofta uttryckligen med `-i inventory.ini`.
 
 ### Vagrantfile
 
-`Vagrantfile` är projektets infrastrukturdefinition och ansvarar för att bygga upp hela labbtopologin i VirtualBox. Den definierar sex Ubuntu 22.04-baserade virtuella maskiner med fasta IP-adresser och tydliga roller:
+`Vagrantfile` är projektets infrastrukturdefinition och ansvarar för att bygga upp hela labbtopologin i VirtualBox.
 
-- `ansible-control` (`192.168.10.100`) – kontrollnod för Ansible
-- `firewall` (`192.168.10.1`, `192.168.20.1`, `192.168.30.1`) – tre-bent brandvägg/router
-- `keycloak` (`192.168.20.10`) – identitetstjänst i DMZ
-- `webserver` (`192.168.20.30`) – applikationsserver i DMZ
-- `vault` (`192.168.30.10`) – secrets manager i backend
-- `database` (`192.168.30.20`) – databasserver i backend
+Den definierar sex Ubuntu 22.04-baserade virtuella maskiner med fasta IP-adresser och tydliga roller:
 
-Topologin är uppdelad i tre separata interna nät: frontend, service/DMZ och backend. Alla noder behåller samtidigt Vagrants vanliga NAT-adapter för management, paketinstallationer och bootstrap.
+- `ansible-control` – kontrollnod för Ansible
+- `firewall` – tre-bent brandvägg/router
+- `keycloak` – identitetstjänst i DMZ
+- `webserver` – applikationsserver i DMZ
+- `vault` – secrets manager i backend
+- `database` – databasserver i backend
 
-Vagrantfilen har också en viktig bootstrap-funktion. Förutom att skapa maskinerna konfigurerar den initial SSH-åtkomst genom att låta `ansible-control` generera en SSH-nyckel, som sedan delas till övriga noder via en synkad katalog. Detta gör att Ansible senare kan administrera noderna över de interna adresserna.
+Topologin är uppdelad i tre separata interna nät: frontend, service/DMZ och backend.
 
-För att kommunikationen mellan zonerna ska fungera provisioneras även statiska routingregler. `firewall` får tre nätkort och IP forwarding aktiveras permanent, vilket gör att den fungerar som central gateway mellan frontend, DMZ och backend. På så sätt används Vagrantfilen både för att skapa infrastrukturen och för att ge miljön en första fungerande nätverks- och administrationskonfiguration.
+Vagrantfilen har också en viktig bootstrap-funktion. Förutom att skapa maskinerna:
 
---- 
+- installerar den Python och grundverktyg
+- sätter första routing mellan zonerna
+- låter `ansible-control` skapa en SSH-nyckel
+- distribuerar public key till övriga noder
+- klonar repot till `/home/vagrant/ansible-repo` på kontrollnoden
+
+Port forwarding används för demo från hostens browser:
+
+- `localhost:8080` -> `webserver:80`
+- `localhost:8081` -> `keycloak:8080`
 
 ### inventory.ini
 
-`inventory.ini` beskriver vilka noder Ansible ska hantera och hur de är grupperade. I projektet används fasta interna IP-adresser, vilket gör inventory-filen enkel att läsa och lätt att felsöka.
+`inventory.ini` beskriver vilka noder Ansible ska hantera och hur de är grupperade.
 
 Noderna är uppdelade i logiska grupper:
 
-- `control` – innehåller `ansible-control`
-- `gateway` – innehåller `firewall`
-- `dmz` – innehåller `keycloak` och `webserver`
-- `backend` – innehåller `vault` och `database`
+- `control` – `ansible-control`
+- `gateway` – `firewall`
+- `dmz` – `keycloak`, `webserver`
+- `backend` – `vault`, `database`
 
-Den här indelningen gör det möjligt att rikta olika roller till rätt maskiner. Exempelvis kan brandväggsrollen köras bara mot `gateway`, medan framtida roller för `keycloak`, `vault`, `database` och `webserver` körs mot sina respektive grupper.
-
-I `all:vars` definieras gemensamma anslutningsinställningar för alla noder, till exempel:
-
-- `ansible_user=vagrant`
-- sökvägen till den privata SSH-nyckeln
-- att host key checking stängs av i labbmiljön
-
-Syftet med inventory-filen är att fungera som kopplingen mellan infrastrukturen som skapas i Vagrant och konfigurationen som hanteras i Ansible.
-
----
+Det gör det möjligt att rikta olika roller till rätt maskiner.
 
 ### site.yml
 
-`site.yml` är projektets centrala playbook och fungerar som startpunkt för Ansible-konfigurationen. Den bestämmer vilka roller som ska köras, på vilka grupper och i vilken ordning.
+`site.yml` är projektets centrala playbook och fungerar som startpunkt för Ansible-konfigurationen.
 
-I nuläget används den för att köra två roller:
+Den kör roller i ordning mot rätt grupper, till exempel:
 
-1. `common` på alla noder
-2. `firewall` på gruppen `gateway`
+- `common` på alla noder
+- `routes` på relevanta noder
+- `firewall` på gateway
+- `webserver` på webservern
+- `keycloak` på keycloak-noden
 
-Rollen `common` installerar grundläggande verktyg som behövs för administration och felsökning, till exempel `curl`, `git`, `vim` och `jq`.
-
-Rollen `firewall` konfigurerar brandväggsnoden genom att:
-- installera `nftables`
-- aktivera IP forwarding
-- lägga ut en brandväggskonfiguration
-- starta och aktivera tjänsten
-
-Tanken med `site.yml` är att vara en gemensam körpunkt för hela projektet. När fler delar byggs färdigt kan nya roller läggas till, till exempel för `webserver`, `keycloak`, `vault` och `database`, utan att strukturen behöver göras om.
-
----
+Det är via `site.yml` som miljön går från bootstrap-läge till sitt riktiga, konfigurerade tillstånd.
 
 ### Rollen common
 
-Rollen `common` används för att skapa en gemensam bas på alla noder i labbmiljön. Syftet är att göra maskinerna enklare att administrera, felsöka och bygga vidare på med fler roller.
+Rollen `common` används för att skapa en gemensam bas på alla noder i labbmiljön.
 
-I den nuvarande versionen installerar rollen grundläggande verktyg som:
+Den installerar grundläggande verktyg som används för administration och felsökning, till exempel:
 
 - `curl`
 - `vim`
 - `git`
 - `jq`
 
-Dessa paket används främst för administration och testning. `curl` är användbart för att testa webbtjänster och API:er, `jq` för att läsa JSON-svar, `git` för versionshantering och `vim` för redigering direkt i terminalen.
-
-Rollen körs på alla noder via `site.yml` och fungerar som projektets gemensamma grundkonfiguration.
-
----
-
 ### Rollen firewall
 
-Rollen `firewall` används för att konfigurera den centrala brandväggs- och gateway-noden i labbmiljön. Den körs endast på `firewall` och är ansvarig för att möjliggöra och kontrollera trafik mellan frontend, DMZ och backend.
+Rollen `firewall` konfigurerar den centrala brandväggs- och gateway-noden.
 
-Rollen gör följande:
+Den gör följande:
 
 - installerar `nftables`
 - aktiverar IP forwarding permanent
 - lägger ut en brandväggskonfiguration
-- startar och aktiverar tjänsten `nftables`
+- startar och aktiverar tjänsten
 
-Brandväggskonfigurationen bygger på principen *default deny*, vilket innebär att trafik blockeras som standard och att endast uttryckligt tillåtna flöden släpps igenom.
-
-I den nuvarande versionen tillåts bland annat:
-
-- SSH från `ansible-control` till övriga noder
-- trafik från frontend till `webserver`
-- trafik från frontend till `keycloak`
-- trafik från `webserver` till `keycloak`
-- trafik från `webserver` till `vault`
-- trafik från `webserver` till `database`
-
-Det gör att brandväggen både fungerar som router mellan näten och som säkerhetskontroll för vilka anslutningar som ska tillåtas.
-
----
+Brandväggen bygger på principen **default deny**, vilket betyder att trafik blockeras som standard och att endast uttryckligt tillåtna flöden släpps igenom.
 
 ### Rollen routes
 
-Rollen `routes` används för att lägga ut persistenta statiska rutter på relevanta noder via netplan. Syftet är att routingen ska finnas kvar även efter omstart av enskilda virtuella maskiner.
+Rollen `routes` används för att lägga ut persistenta statiska rutter via netplan.
 
-Rollen körs på `ansible-control`, `keycloak`, `webserver`, `vault` och `database`. Den använder hostspecifika variabler i `host_vars/` för att definiera vilka nät som ska routas via respektive gateway.
+Rollen kompletterar bootstrap-routingen i `Vagrantfile` och gör routingen mer robust över tid. Den gör att rätt routes ligger kvar även efter omstart av enskilda virtuella maskiner.
 
-Rollen består av:
-- en template för netplan-konfiguration
-- en task som lägger ut konfigurationen
-- en handler som kör `netplan apply`
+### Rollen webserver
 
-Detta kompletterar bootstrap-routingen i `Vagrantfile` och gör nätkonfigurationen mer robust över tid.
+Rollen `webserver` sätter upp DMZ-webbservern.
+
+Den gör bland annat följande:
+
+- installerar Python, Flask, requests och nginx
+- skapar katalog för webbappen
+- lägger ut Flask-applikationen via template
+- skapar systemd-service för webbappen
+- lägger ut nginx-konfiguration
+- aktiverar nginx som reverse proxy framför Flask
+
+I nuvarande version visar webbappen en startsida och ett loginflöde mot Keycloak.
+
+### Rollen keycloak
+
+Rollen `keycloak` sätter upp Keycloak i DMZ.
+
+Den gör bland annat följande:
+
+- installerar Java och `unzip`
+- laddar ner Keycloak
+- extraherar Keycloak under `/opt`
+- skapar systemd-service
+- startar och aktiverar tjänsten
+
+Keycloak körs i den nuvarande versionen i **development mode**, vilket är tillräckligt för labb och demo men inte lämpligt för produktion.
 
 ---
 
-## Säkerhetsanalys
+## Krav och förutsättningar
 
-En känd begränsning i den nuvarande implementationen är att statisk routing sätts via provisionering i `Vagrantfile`. Detta val gjordes för att möjliggöra första kontakt mellan `ansible-control` och övriga noder, så att SSH-nycklar kan distribueras och Ansible kan börja användas. Lösningen fungerar för bootstrap, men routingen är mindre robust än en persistent konfiguration via exempelvis netplan. Om enskilda VM:ar startas om separat kan routingen därför behöva återställas. Detta är nu åtgärdat och persistant routing via netplan är implementerat i lösningen.
+Följande krävs för att köra projektet:
 
-Persistent routing verifierades genom att Ansible först lade ut netplan-konfiguration på relevanta noder. Därefter startades `webserver` om med Ansible-modulen `reboot`. Efter omstart verifierades dels att noden åter blev nåbar med `ansible ... -m ping`, dels att de statiska rutterna fortfarande fanns kvar i routingtabellen. Testet visar att routingen inte längre enbart är beroende av provisionering i `Vagrantfile`, utan överlever omstart av enskild VM.
+- VirtualBox
+- Vagrant
+- Git
+- tillräckligt med RAM och CPU för flera samtidiga VM:ar
+
+Projektet är byggt och testat med Ubuntu 22.04 som bas i gästerna.
+
+---
+
+## Kom igång
+
+### 1. Klona repot
+
+```bash
+git clone https://github.com/d-lindskog/Virtualiseringsteknik.git
+cd Virtualiseringsteknik
+```
+
+### 2. Starta miljön
+
+```bash
+vagrant up
+vagrant status
+```
+
+Detta skapar VM:arna och kör bootstrap-provisioneringen.
+
+### 3. Logga in på kontrollnoden
+
+```bash
+vagrant ssh ansible-control
+```
+
+### 4. Kör Ansible från den clonade kopian i kontrollnoden
+
+```bash
+cd /home/vagrant/ansible-repo
+git branch --show-current
+ansible-playbook -i inventory.ini site.yml
+```
+
+Det går också att köra från `/vagrant`, men under demo har vi valt att köra från den clonade kopian inne i `ansible-control`.
+
+---
 
 ## Verifiering
 
-För att verifiera att den grundläggande infrastrukturen fungerar används automatiserade testscript som körs från `ansible-control`.
+För att verifiera att infrastrukturen fungerar används automatiserade testscript som körs från `ansible-control`.
 
-### Automatisk verifiering av åtkomst mellan kontrollnoden och övriga noder
+### Verifiering 01 – kontrollnodens åtkomst
 
-Scriptet `test/verifiera-01.sh` används för att verifiera att `ansible-control` kan nå samtliga övriga noder i labbmiljön via Ansible.
+Scriptet `test/verifiera-01.sh` används för att verifiera att `ansible-control` kan nå samtliga övriga noder via Ansible.
 
-Scriptet använder `ansible ... -m ping` för att kontrollera SSH-baserad åtkomst till följande noder:
+Det testar följande noder:
 
 - `firewall`
 - `keycloak`
@@ -291,30 +368,131 @@ Scriptet använder `ansible ... -m ping` för att kontrollera SSH-baserad åtkom
 - `vault`
 - `database`
 
-Syftet med testet är att verifiera att:
+Syftet är att verifiera att:
 
-1. kontrollnoden kan nå samtliga noder över de interna nätverken  
-2. routingen mellan segmenten fungerar för administrativ trafik  
-3. SSH-baserad automation med Ansible fungerar som grund för vidare konfiguration  
+1. kontrollnoden kan nå alla andra noder
+2. SSH-åtkomst fungerar
+3. Ansible kan administrera miljön
 
-Ett godkänt resultat visar att kontrollnoden har fungerande åtkomst till de övriga virtuella maskinerna och att den grundläggande nätverks- och administrationsmodellen i projektet är korrekt uppsatt.
+### Verifiering 02 – routing efter reboot
 
-### Automatisk verifiering av routing efter reboot
+Scriptet `test/verifiera-02.sh` används för att verifiera att den persistenta routingen fungerar även efter omstart.
 
-Scriptet `test/verifiera-02.sh` används för att verifiera att den persistenta routingen fungerar även efter omstart av enskilda virtuella maskiner.
+Det testar två noder:
 
-Scriptet körs från `ansible-control` och testar två noder:
+- `webserver`
+- `vault`
 
-- `webserver` i DMZ
-- `vault` i backend
+För varje nod gör scriptet tre saker:
 
-För varje nod genomförs tre steg:
+1. startar om noden
+2. kontrollerar att noden blir nåbar igen
+3. kontrollerar att rätt statiska routes fortfarande finns kvar
 
-1. Noden startas om med Ansible-modulen `reboot`  
-2. Scriptet kontrollerar att noden blir nåbar igen med `ansible ... -m ping`  
-3. Scriptet läser nodens routingtabell och verifierar att rätt statiska routes fortfarande finns kvar efter reboot  
+Syftet är att visa att routingen inte bara fungerar direkt efter bootstrap, utan också överlever reboot.
 
-För `webserver` kontrolleras att routingen till frontend- och backend-nätet går via brandväggen.  
-För `vault` kontrolleras att routingen till frontend- och service-nätet går via brandväggen.
+### Verifiering 03 – DMZ
 
-Syftet med testet är att visa att routingen inte bara fungerar direkt efter provisionering, utan också överlever omstart av enskilda virtuella maskiner. Detta verifierar att lösningen med persistent routing via Ansible och netplan fungerar som tänkt.
+Scriptet `test/verifiera-03.sh` används för att verifiera DMZ-delen av lösningen.
+
+Det kontrollerar att:
+
+- `webapp` är aktiv
+- `nginx` är aktiv
+- webbappen svarar lokalt på webservern
+- webbappen nås från `ansible-control`
+- `keycloak` är aktiv
+- Keycloak svarar lokalt
+- Keycloak nås från `ansible-control`
+- `/login` redirectar till Keycloak
+
+Syftet är att verifiera att webservern och Keycloak fungerar, att de är nåbara över nätet och att loginflödet initieras korrekt.
+
+---
+
+## Säkerhetsåtgärder
+
+Projektet visar flera säkerhetsåtgärder i praktiken:
+
+- segmentering mellan frontend, DMZ och backend
+- central brandvägg mellan zonerna
+- default deny-tänk i brandväggsregler
+- separat identitetstjänst i DMZ
+- backend-resurser separerade från användarnära tjänster
+- persistent routing i stället för enbart tillfällig bootstrap-routing
+- verifiering av både åtkomst, routing och tjänster
+
+---
+
+## Säkerhetsanalys
+
+Projektet är en labbmiljö och inte en produktionslösning. Därför finns flera kända begränsningar:
+
+- Keycloak kör i development mode
+- Flask kör med sin inbyggda development server
+- intern trafik är inte fullständigt skyddad med TLS
+- backend-integrationen med Vault och databas är ännu inte färdig i `main`
+- vissa hemligheter ligger fortfarande enklare än i en full produktionslösning
+- ingen hög tillgänglighet eller redundans finns
+
+En tidigare begränsning var att routing i praktiken bara fanns som bootstrap i `Vagrantfile`. Detta är nu förbättrat genom persistent routing via netplan och verifieras med `verifiera-02.sh`.
+
+---
+
+## Designval och motivering
+
+### Segmentering i tre zoner
+
+Vi valde tre zoner för att visa tydlig separering mellan:
+
+- administration
+- exponerade tjänster
+- skyddade backend-resurser
+
+Det minskar attackytan och gör trafikflöden mer begripliga.
+
+### Vagrant + Ansible
+
+Vi använder Vagrant för att skapa och bootstrapa infrastrukturen, medan Ansible används för den riktiga slutkonfigurationen.
+
+Det gör ansvarsfördelningen tydlig:
+
+- **Vagrant** bygger och bootstrappar
+- **Ansible** konfigurerar och verifierar
+
+### Port forwarding för demo
+
+Eftersom DMZ-adresserna ligger i interna VirtualBox-nät kan de inte nås direkt från hostens browser. Därför använder vi port forwarding för att kunna visa webbappen och Keycloak i en vanlig webbläsare under redovisning.
+
+---
+
+## Avgränsningar
+
+Följande är medvetet inte fullt färdigställt i den nuvarande versionen:
+
+- webbappens koppling till Vault
+- webbappens koppling till databasen
+- visning av riktig backend-data på dashboard
+- full hårdning av Keycloak och Flask för produktion
+- full secrets-hantering i färdig produktionsform
+
+Detta är avgränsat för att fokusera på att först få den segmenterade, automatiserade och verifierade infrastrukturen samt DMZ-flödet att fungera korrekt.
+
+---
+
+## Sammanfattning
+
+Det här projektet visar en fungerande automatiserad labbmiljö med:
+
+- VirtualBox
+- Vagrant
+- Ansible
+- segmentering
+- brandvägg
+- persistent routing
+- webserver i DMZ
+- Keycloak i DMZ
+- verifieringsscript
+- browserdemo via port forwarding
+
+Även om backend-kopplingen ännu inte är fullt klar visar lösningen tydligt att vi förstått hur infrastruktur kan byggas, bootstrapas, automatiseras, verifieras och presenteras i en segmenterad virtualiserad miljö.
