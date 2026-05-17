@@ -33,17 +33,6 @@ Vagrant.configure("2") do |config|
         ip: machine[:ip],
         virtualbox__intnet: machine[:net]
 
-            # Tre-bent router/firewall
-      if machine[:name] == "firewall"
-        node.vm.network "private_network",
-          ip: "#{SERVICE_SUB}1",
-          virtualbox__intnet: "service-net"
-
-        node.vm.network "private_network",
-          ip: "#{BACKEND_SUB}1",
-          virtualbox__intnet: "backend-net"
-      end
-
       # Port forwarding för demo i hostens webbläsare
       if machine[:name] == "webserver"
         node.vm.network "forwarded_port", guest: 80, host: 8080
@@ -53,13 +42,24 @@ Vagrant.configure("2") do |config|
         node.vm.network "forwarded_port", guest: 8080, host: 8081
       end
 
-      node.vm.provision "shell", inline: <<-SHELL
+      # Tre-bent router/firewall
+      if machine[:name] == "firewall"
+        node.vm.network "private_network",
+          ip: "#{SERVICE_SUB}1",
+          virtualbox__intnet: "service-net"
+
+        node.vm.network "private_network",
+          ip: "#{BACKEND_SUB}1",
+          virtualbox__intnet: "backend-net"
+
+        node.vm.provision "shell", inline: <<-SHELL
           set -e
           echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-forwarding.conf
           sysctl --system
           apt-get update -y
           apt-get install -y python3 vim curl nftables
         SHELL
+      end
 
       # Rutter
       case machine[:name]
@@ -123,7 +123,7 @@ Vagrant.configure("2") do |config|
 
           sudo -u vagrant bash -c '
             rm -rf /home/vagrant/ansible-repo
-            git clone --branch feature/firewall-common https://github.com/d-lindskog/Virtualiseringsteknik.git /home/vagrant/ansible-repo
+            git clone --branch main https://github.com/d-lindskog/Virtualiseringsteknik.git /home/vagrant/ansible-repo
           '
         SHELL
         
