@@ -3,6 +3,12 @@
   roles:
     - common
 
+- name: Persistent routing på kontroll, DMZ och backend
+  hosts: control:dmz:backend
+  become: true
+  roles:
+    - routes
+
 - hosts: gateway
   become: yes
   roles:

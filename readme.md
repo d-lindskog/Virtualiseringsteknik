@@ -38,11 +38,13 @@ Detta gör att projektet visar både autentisering, secrets-hantering, databasko
 - [Miljöer och IP-adresser](#miljöer-och-ip-adresser)
 - [Mappstruktur](#mappstruktur)
 - [Komponenter](#komponenter)
+  - [ansible.cfg](#ansiblecfg)
   - [Vagrantfile](#vagrantfile)
   - [inventory.ini](#inventoryini)
   - [site.yml](#siteyml)
   - [Rollen common](#rollen-common)
   - [Rollen firewall](#rollen-firewall)
+  - [Rollen routes](#rollen-routes)
 - [Krav och förutsättningar](#krav-och-förutsättningar)
 - [Kom igång](#kom-igång)
 - [Secrets](#secrets)
@@ -84,34 +86,67 @@ Brandväggen routar och filtrerar trafik mellan näten. Ansible-control ligger i
 
 ```text
 repo/
+├── ansible.cfg
+├── docs/
+│   └── architecture.png
+├── host_vars/
+│   ├── ansible-control.yml
+│   ├── database.yml
+│   ├── keycloak.yml
+│   ├── vault.yml
+│   └── webserver.yml
 ├── roles/
 │   ├── common/
 │   │   └── tasks/
 │   │       └── main.yml
+│   ├── database/
 │   ├── firewall/
-│   │   ├── tasks/
-│   │   │   └── main.yml
 │   │   ├── handlers/
+│   │   │   └── main.yml
+│   │   ├── tasks/
 │   │   │   └── main.yml
 │   │   └── templates/
 │   │       └── nftables.conf.j2
 │   ├── keycloak/
+│   ├── routes/
+│   │   ├── handlers/
+│   │   │   └── main.yml
+│   │   ├── tasks/
+│   │   │   └── main.yml
+│   │   └── templates/
+│   │       └── routes.yaml.j2
 │   ├── vault/
-│   ├── database/
+│   │   ├── defaults/
+│   │   │   └── main.yml
+│   │   ├── handlers/
+│   │   │   └── main.yml
+│   │   ├── tasks/
+│   │   │   └── main.yml
+│   │   └── templates/
+│   │       └── vault.hcl.j2
 │   └── webserver/
-├── docs/
-│   └── architecture.png
-├── inventory.ini
-├── site.yml
-├── Vagrantfile
+├── shared_keys/
+│   └── control.pub
+├── test/
+│   └── verifiera-01.sh
+│   └── verifiera-02.sh
+├── .gitattributes
 ├── .gitignore
-└── README.md
+├── inventory.ini
+├── readme.md
+├── site.yml
+└── Vagrantfile
 
 ```
 
 
 ## Komponenter
 
+### ansible.cfg
+
+Filen `ansible.cfg` används för att styra Ansible:s standardbeteende i projektet. I denna labbmiljö används den för att ange `inventory.ini` som standard-inventory och för att stänga av `host_key_checking`.
+
+Detta gör att Ansible-kommandon kan köras utan att `-i inventory.ini` behöver anges varje gång. Att stänga av host key checking förenklar arbetet i en virtualiserad labbmiljö där virtuella maskiner ofta skapas om, provisioneras på nytt eller byter SSH-nycklar. I en produktionsmiljö bör host key checking normalt vara aktiverat, men i denna labb valdes det bort för att minska friktion vid test och automation.
 
 ### Vagrantfile
 
@@ -218,3 +253,68 @@ I den nuvarande versionen tillåts bland annat:
 Det gör att brandväggen både fungerar som router mellan näten och som säkerhetskontroll för vilka anslutningar som ska tillåtas.
 
 ---
+
+### Rollen routes
+
+Rollen `routes` används för att lägga ut persistenta statiska rutter på relevanta noder via netplan. Syftet är att routingen ska finnas kvar även efter omstart av enskilda virtuella maskiner.
+
+Rollen körs på `ansible-control`, `keycloak`, `webserver`, `vault` och `database`. Den använder hostspecifika variabler i `host_vars/` för att definiera vilka nät som ska routas via respektive gateway.
+
+Rollen består av:
+- en template för netplan-konfiguration
+- en task som lägger ut konfigurationen
+- en handler som kör `netplan apply`
+
+Detta kompletterar bootstrap-routingen i `Vagrantfile` och gör nätkonfigurationen mer robust över tid.
+
+---
+
+## Säkerhetsanalys
+
+En känd begränsning i den nuvarande implementationen är att statisk routing sätts via provisionering i `Vagrantfile`. Detta val gjordes för att möjliggöra första kontakt mellan `ansible-control` och övriga noder, så att SSH-nycklar kan distribueras och Ansible kan börja användas. Lösningen fungerar för bootstrap, men routingen är mindre robust än en persistent konfiguration via exempelvis netplan. Om enskilda VM:ar startas om separat kan routingen därför behöva återställas. Detta är nu åtgärdat och persistant routing via netplan är implementerat i lösningen.
+
+Persistent routing verifierades genom att Ansible först lade ut netplan-konfiguration på relevanta noder. Därefter startades `webserver` om med Ansible-modulen `reboot`. Efter omstart verifierades dels att noden åter blev nåbar med `ansible ... -m ping`, dels att de statiska rutterna fortfarande fanns kvar i routingtabellen. Testet visar att routingen inte längre enbart är beroende av provisionering i `Vagrantfile`, utan överlever omstart av enskild VM.
+
+## Verifiering
+
+För att verifiera att den grundläggande infrastrukturen fungerar används automatiserade testscript som körs från `ansible-control`.
+
+### Automatisk verifiering av åtkomst mellan kontrollnoden och övriga noder
+
+Scriptet `test/verifiera-01.sh` används för att verifiera att `ansible-control` kan nå samtliga övriga noder i labbmiljön via Ansible.
+
+Scriptet använder `ansible ... -m ping` för att kontrollera SSH-baserad åtkomst till följande noder:
+
+- `firewall`
+- `keycloak`
+- `webserver`
+- `vault`
+- `database`
+
+Syftet med testet är att verifiera att:
+
+1. kontrollnoden kan nå samtliga noder över de interna nätverken  
+2. routingen mellan segmenten fungerar för administrativ trafik  
+3. SSH-baserad automation med Ansible fungerar som grund för vidare konfiguration  
+
+Ett godkänt resultat visar att kontrollnoden har fungerande åtkomst till de övriga virtuella maskinerna och att den grundläggande nätverks- och administrationsmodellen i projektet är korrekt uppsatt.
+
+### Automatisk verifiering av routing efter reboot
+
+Scriptet `test/verifiera-02.sh` används för att verifiera att den persistenta routingen fungerar även efter omstart av enskilda virtuella maskiner.
+
+Scriptet körs från `ansible-control` och testar två noder:
+
+- `webserver` i DMZ
+- `vault` i backend
+
+För varje nod genomförs tre steg:
+
+1. Noden startas om med Ansible-modulen `reboot`  
+2. Scriptet kontrollerar att noden blir nåbar igen med `ansible ... -m ping`  
+3. Scriptet läser nodens routingtabell och verifierar att rätt statiska routes fortfarande finns kvar efter reboot  
+
+För `webserver` kontrolleras att routingen till frontend- och backend-nätet går via brandväggen.  
+För `vault` kontrolleras att routingen till frontend- och service-nätet går via brandväggen.
+
+Syftet med testet är att visa att routingen inte bara fungerar direkt efter provisionering, utan också överlever omstart av enskilda virtuella maskiner. Detta verifierar att lösningen med persistent routing via Ansible och netplan fungerar som tänkt.
