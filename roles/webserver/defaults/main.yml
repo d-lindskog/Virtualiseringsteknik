@@ -1,0 +1,23 @@
+---
+webapp_dir: "/opt/webapp"
+
+webapp_user: "vagrant"
+webapp_group: "vagrant"
+
+webapp_service_name: "webapp"
+
+flask_host: "0.0.0.0"
+flask_port: 5000
+
+webapp_external_url: "http://localhost:8080"
+
+keycloak_internal_url: "http://192.168.20.10:8080"
+keycloak_external_url: "http://localhost:8081"
+keycloak_realm: "lab"
+keycloak_client_id: "webapp"
+
+keycloak_client_secret: "BYT_DENNA_TILL_RIKTIG_SECRET"
+
+keycloak_redirect_uri: "http://localhost:8080/auth/callback"
+
+flask_secret_key: "byt-denna-senare"

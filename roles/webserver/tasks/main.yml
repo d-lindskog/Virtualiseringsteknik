@@ -1,0 +1,94 @@
+---
+# Grundinstallation för webservern i DMZ.
+# Installerar paket som behövs för nginx och Flask-applikationen.
+
+- name: Installera nödvändiga paket för webservern
+  apt:
+    name:
+      - python3
+      - python3-flask
+      - python3-requests
+      - python3-pip
+      - nginx
+    state: present
+    update_cache: true
+
+# Skapar katalog för Flask-applikationen.
+
+- name: Skapa katalog för Flask-applikation
+  file:
+    path: "{{ webapp_dir }}"
+    state: directory
+    owner: "{{ webapp_user }}"
+    group: "{{ webapp_group }}"
+    mode: "0755"
+
+# Lägger ut Flask-applikationen från template så Keycloak-variabler kan användas.
+
+- name: Lägg ut Flask-app från template
+  template:
+    src: app.py.j2
+    dest: "{{ webapp_dir }}/app.py"
+    owner: "{{ webapp_user }}"
+    group: "{{ webapp_group }}"
+    mode: "0644"
+  notify: Restart webapp
+
+# Skapar systemd-service för Flask-applikationen.
+
+- name: Skapa systemd-service för Flask-app
+  template:
+    src: webapp.service.j2
+    dest: /etc/systemd/system/webapp.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart webapp
+
+# Säkerställer att Flask-appen är startad och aktiverad.
+
+- name: Starta och aktivera Flask-app
+  service:
+    name: "{{ webapp_service_name }}"
+    state: started
+    enabled: true
+
+# Lägger ut nginx-konfiguration för Flask-applikationen.
+
+- name: Lägg ut nginx-konfiguration för webappen
+  template:
+    src: webapp.nginx.j2
+    dest: /etc/nginx/sites-available/webapp
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart nginx
+
+# Aktiverar nginx-siten genom symbolisk länk.
+
+- name: Aktivera nginx-site
+  file:
+    src: /etc/nginx/sites-available/webapp
+    dest: /etc/nginx/sites-enabled/webapp
+    state: link
+    force: true
+  notify: Restart nginx
+
+# Tar bort default-siten så vår webapp används.
+
+- name: Ta bort default nginx-site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Restart nginx
+
+# Säkerställer att nginx är startad och aktiverad.
+
+- name: Starta och aktivera nginx
+  service:
+    name: nginx
+    state: started
+    enabled: true
+    

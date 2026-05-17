@@ -33,7 +33,7 @@ Vagrant.configure("2") do |config|
         ip: machine[:ip],
         virtualbox__intnet: machine[:net]
 
-      # Tre-bent router/firewall
+            # Tre-bent router/firewall
       if machine[:name] == "firewall"
         node.vm.network "private_network",
           ip: "#{SERVICE_SUB}1",
@@ -42,15 +42,24 @@ Vagrant.configure("2") do |config|
         node.vm.network "private_network",
           ip: "#{BACKEND_SUB}1",
           virtualbox__intnet: "backend-net"
+      end
 
-        node.vm.provision "shell", inline: <<-SHELL
+      # Port forwarding för demo i hostens webbläsare
+      if machine[:name] == "webserver"
+        node.vm.network "forwarded_port", guest: 80, host: 8080
+      end
+
+      if machine[:name] == "keycloak"
+        node.vm.network "forwarded_port", guest: 8080, host: 8081
+      end
+
+      node.vm.provision "shell", inline: <<-SHELL
           set -e
           echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-forwarding.conf
           sysctl --system
           apt-get update -y
           apt-get install -y python3 vim curl nftables
         SHELL
-      end
 
       # Rutter
       case machine[:name]

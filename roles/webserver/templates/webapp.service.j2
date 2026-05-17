@@ -1,0 +1,15 @@
+[Unit]
+Description=Flask Web Application
+After=network.target
+
+[Service]
+User={{ webapp_user }}
+Group={{ webapp_group }}
+WorkingDirectory={{ webapp_dir }}
+ExecStart=/usr/bin/python3 {{ webapp_dir }}/app.py
+Restart=always
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+
