@@ -1,1 +1,0 @@
-{"virtualbox":{"/tmp/shared_keys":{"create":true,"guestpath":"/tmp/shared_keys","hostpath":"C:/Users/lisa/Virtualiseringsteknik/shared_keys","disabled":false,"__vagrantfile":true},"/vagrant":{"guestpath":"/vagrant","hostpath":"C:/Users/lisa/Virtualiseringsteknik","disabled":false,"__vagrantfile":true}}}
